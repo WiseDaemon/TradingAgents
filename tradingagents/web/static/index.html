@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingAgents Studio - AI Financial Intelligence Cockpit</title>
+    <!-- Tailwind CSS with plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Fonts: Sora for Display & Inter for Data -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <!-- Marked.js for rendering markdown reports in the dossier -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "bg-dark": "#0b0f19",
+                        "surface": "#0f131d",
+                        "surface-container": "#1c1f2a",
+                        "surface-container-high": "#262a35",
+                        "surface-container-highest": "#313540",
+                        "primary": "#10b981",
+                        "primary-fixed": "#4edea3",
+                        "secondary": "#4cd7f6",
+                        "secondary-container": "#03b5d3",
+                        "amber-risk": "#f59e0b",
+                        "crimson-sell": "#ef4444",
+                        "on-surface": "#dfe2f1",
+                        "on-surface-variant": "#86948a",
+                        "outline-variant": "#3c4a42"
+                    },
+                    fontFamily: {
+                        sora: ["Sora", "sans-serif"],
+                        inter: ["Inter", "sans-serif"],
+                        "data-tabular": ["Inter", "monospace"]
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-bg-dark text-on-surface font-inter min-h-screen flex flex-col antialiased select-none">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 bg-surface/90 backdrop-blur-2xl border-b border-outline-variant/30 px-6 flex items-center justify-between sticky top-0 z-50 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-primary/20 border border-primary flex items-center justify-center glow-primary">
+                    <span class="material-symbols-outlined text-primary text-lg font-bold">query_stats</span>
+                </div>
+                <span class="font-sora font-extrabold text-xl tracking-tight text-primary text-glow-primary">TradingAgents</span>
+                <span class="text-xs px-2 py-0.5 rounded bg-secondary/15 text-secondary border border-secondary/30 font-semibold uppercase tracking-wider">Studio Cockpit</span>
+            </div>
+            <nav class="hidden lg:flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+                <span class="text-primary border-b-2 border-primary pb-1 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Multi-Agent Cockpit</span>
+            </nav>
+        </div>
+
+        <!-- Global Clocks & Backend Status -->
+        <div class="flex items-center gap-6">
+            <!-- Market Clocks -->
+            <div class="hidden md:flex items-center gap-4 bg-surface-container/60 px-4 py-1.5 rounded-full border border-outline-variant/30 text-xs">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-on-surface-variant">🇺🇸 NYSE</span>
+                    <span id="clock-ny" class="font-data-tabular text-secondary tnum font-semibold">--:--</span>
+                </div>
+                <div class="w-px h-3.5 bg-outline-variant/50"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-on-surface-variant">🇮🇳 NSE</span>
+                    <span id="clock-in" class="font-data-tabular text-primary tnum font-semibold">--:--</span>
+                </div>
+                <div class="w-px h-3.5 bg-outline-variant/50"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-on-surface-variant">🇬🇧 LSE</span>
+                    <span id="clock-lon" class="font-data-tabular text-on-surface tnum font-semibold">--:--</span>
+                </div>
+                <div class="w-px h-3.5 bg-outline-variant/50"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-on-surface-variant">🇯🇵 TSE</span>
+                    <span id="clock-tok" class="font-data-tabular text-on-surface tnum font-semibold">--:--</span>
+                </div>
+            </div>
+
+            <!-- LLM Backend Status -->
+            <div class="flex items-center gap-2 bg-surface-container px-3.5 py-1.5 rounded-full border border-primary/40 glow-primary">
+                <div class="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></div>
+                <span class="text-xs font-medium text-primary">Connected: Local Graph Backend</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Multi-Pane Layout -->
+    <div class="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden max-w-[1920px] w-full mx-auto">
+
+        <!-- Left Control & Configuration Sidebar -->
+        <aside class="w-full lg:w-80 flex flex-col gap-4 shrink-0">
+            <div class="glass-panel p-5 flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-outline-variant/30 pb-3">
+                    <span class="material-symbols-outlined text-secondary text-lg">tune</span>
+                    <h2 class="font-sora font-semibold text-sm uppercase tracking-wider text-secondary">Market & Asset Setup</h2>
+                </div>
+
+                <!-- 1. Country & Exchange Selector -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Country & Exchange</span>
+                        <span class="text-[11px] text-primary lowercase">auto-extension</span>
+                    </label>
+                    <select id="select-market" class="w-full font-medium">
+                        <!-- Populated dynamically via /api/markets -->
+                        <option value="IN_NSE">🇮🇳 India (NSE) [.NS]</option>
+                        <option value="IN_BSE">🇮🇳 India (BSE) [.BO]</option>
+                        <option value="US">🇺🇸 United States [No suffix]</option>
+                        <option value="UK">🇬🇧 United Kingdom (LSE) [.L]</option>
+                        <option value="JP">🇯🇵 Japan (TSE) [.T]</option>
+                        <option value="HK">🇭🇰 Hong Kong (HKEX) [.HK]</option>
+                        <option value="DE">🇩🇪 Germany (XETRA) [.DE]</option>
+                    </select>
+                </div>
+
+                <!-- 2. Smart Ticker Input with Live Extension Preview -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Ticker Symbol</span>
+                        <span id="badge-resolved-ticker" class="text-xs px-2 py-0.5 bg-primary/20 text-primary border border-primary/40 rounded font-data-tabular font-bold tnum">RELIANCE.NS</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input id="input-ticker" type="text" value="RELIANCE" placeholder="e.g. RELIANCE, TCS, AAPL" class="flex-1 uppercase font-data-tabular font-semibold tracking-wider">
+                        <button id="btn-fetch-quote" type="button" title="Fetch quote & chart" class="px-3 bg-surface-container-highest hover:bg-secondary/20 hover:text-secondary rounded border border-outline-variant/50 transition-all flex items-center justify-center">
+                            <span class="material-symbols-outlined text-sm">refresh</span>
+                        </button>
+                    </div>
+                    <!-- Quick suggestions -->
+                    <div class="mt-2 flex items-center gap-1.5 flex-wrap" id="ticker-pills">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Benchmark info -->
+                <div class="bg-surface-container-lowest/50 p-2.5 rounded border border-outline-variant/20 flex items-center justify-between text-xs">
+                    <span class="text-on-surface-variant">Benchmark:</span>
+                    <span id="badge-benchmark" class="text-secondary font-data-tabular font-semibold">^NSEI (Nifty 50)</span>
+                </div>
+
+                <!-- 3. Analysis Date -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-1.5">Analysis Target Date</label>
+                    <input id="input-date" type="date" class="w-full font-data-tabular">
+                </div>
+
+                <!-- 4. Analyst Team Toggles -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-2">Analyst Team Deployment</label>
+                    <div class="space-y-1.5 text-xs">
+                        <label class="flex items-center gap-2.5 p-2 rounded bg-surface-container/40 hover:bg-surface-container border border-outline-variant/30 cursor-pointer">
+                            <input id="chk-market" type="checkbox" checked class="rounded text-primary focus:ring-primary">
+                            <span class="material-symbols-outlined text-primary text-sm">show_chart</span>
+                            <span class="font-medium">Market Analyst (Technicals)</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 p-2 rounded bg-surface-container/40 hover:bg-surface-container border border-outline-variant/30 cursor-pointer">
+                            <input id="chk-social" type="checkbox" checked class="rounded text-primary focus:ring-primary">
+                            <span class="material-symbols-outlined text-secondary text-sm">forum</span>
+                            <span class="font-medium">Sentiment Analyst (Social Chatter)</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 p-2 rounded bg-surface-container/40 hover:bg-surface-container border border-outline-variant/30 cursor-pointer">
+                            <input id="chk-news" type="checkbox" checked class="rounded text-primary focus:ring-primary">
+                            <span class="material-symbols-outlined text-amber-risk text-sm">newspaper</span>
+                            <span class="font-medium">News Analyst (Macro & Central Banks)</span>
+                        </label>
+                        <label class="flex items-center gap-2.5 p-2 rounded bg-surface-container/40 hover:bg-surface-container border border-outline-variant/30 cursor-pointer">
+                            <input id="chk-fundamentals" type="checkbox" checked class="rounded text-primary focus:ring-primary">
+                            <span class="material-symbols-outlined text-primary-fixed text-sm">account_balance</span>
+                            <span class="font-medium">Fundamentals Analyst (Financials)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 5. LLM Model Selection -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-1.5">LLM Provider</label>
+                    <select id="select-provider" class="w-full">
+                        <option value="openai">OpenAI (GPT-5.6 / GPT-5.4)</option>
+                        <option value="google">Google Gemini (Gemini 3.1 Pro / 2.5)</option>
+                        <option value="anthropic">Anthropic Claude (Sonnet 3.7)</option>
+                        <option value="deepseek">DeepSeek (Reasoner / Chat)</option>
+                        <option value="groq">Groq (Ultra-Fast Llama 3.3)</option>
+                        <option value="ollama">Ollama (Local Offline)</option>
+                    </select>
+                </div>
+
+                <!-- 6. Debate Rounds Slider -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold uppercase text-on-surface-variant tracking-wider mb-1">
+                        <span>Debate Depth</span>
+                        <span id="lbl-depth" class="text-primary">1 Round</span>
+                    </div>
+                    <input id="range-depth" type="range" min="1" max="3" value="1" class="w-full accent-primary cursor-pointer" oninput="document.getElementById('lbl-depth').textContent = this.value + ' Round' + (this.value > 1 ? 's' : '')">
+                </div>
+
+                <!-- Execute Button CTA -->
+                <div class="pt-2 flex flex-col gap-2">
+                    <button id="btn-run-analysis" type="button" class="w-full py-3 bg-primary text-black font-sora font-bold text-sm rounded-lg hover:bg-primary-fixed hover:glow-primary transition-all shadow-[0_0_20px_rgba(16,185,129,0.35)] active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">rocket_launch</span>
+                        <span>Execute Multi-Agent Alpha</span>
+                    </button>
+                    <button id="btn-stop-analysis" type="button" class="hidden w-full py-2 bg-crimson-sell/20 text-crimson-sell border border-crimson-sell/50 font-sora font-semibold text-xs rounded-lg hover:bg-crimson-sell/30 transition-all flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">cancel</span>
+                        <span>Abort Execution</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Workspace: Telemetry, Chart, and Multi-Agent Visualizer -->
+        <main class="flex-1 flex flex-col gap-4 min-w-0">
+
+            <!-- Stock Header Card -->
+            <div class="glass-panel p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h1 id="header-name" class="font-sora font-bold text-xl text-white">Reliance Industries Ltd</h1>
+                        <span id="header-symbol" class="font-data-tabular text-xs px-2.5 py-0.5 rounded bg-secondary/20 text-secondary border border-secondary/40 font-bold tnum">RELIANCE.NS</span>
+                        <span class="text-xs text-on-surface-variant font-medium">EQ</span>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-on-surface-variant">
+                        <span>P/E: <strong id="metric-pe" class="text-white tnum font-data-tabular">26.4x</strong></span>
+                        <span>•</span>
+                        <span>Mkt Cap: <strong id="metric-mcap" class="text-white tnum font-data-tabular">₹19.92T</strong></span>
+                        <span>•</span>
+                        <span>52W Range: <strong id="metric-52w" class="text-white tnum font-data-tabular">₹2,220 - ₹3,217</strong></span>
+                    </div>
+                </div>
+
+                <div class="text-left sm:text-right">
+                    <div id="header-price" class="font-sora font-extrabold text-3xl text-primary text-glow-primary tnum">₹2,945.50</div>
+                    <div id="header-change" class="flex items-center sm:justify-end gap-1 font-data-tabular text-primary text-glow-primary tnum font-semibold text-sm">
+                        <span class="material-symbols-outlined text-sm">arrow_upward</span>
+                        <span>+35.20 (+1.2%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Candlestick Chart Area -->
+            <div class="glass-panel p-4 flex-1 flex flex-col relative min-h-[340px]">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-secondary text-sm">candlestick_chart</span>
+                        <span class="font-sora text-xs font-semibold uppercase tracking-wider text-secondary">Price History & Momentum</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="flex items-center gap-1 text-[11px] text-primary"><span class="w-2 h-2 rounded-full bg-primary"></span> Bull</span>
+                        <span class="flex items-center gap-1 text-[11px] text-crimson-sell"><span class="w-2 h-2 rounded-full bg-crimson-sell"></span> Bear</span>
+                        <span class="flex items-center gap-1 text-[11px] text-secondary"><span class="w-2.5 h-0.5 bg-secondary"></span> EMA(20)</span>
+                    </div>
+                </div>
+                <div class="flex-1 relative w-full h-full min-h-[260px]">
+                    <canvas id="price-chart" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+
+            <!-- Multi-Agent Orchestration Pipeline Visualizer -->
+            <div class="glass-panel p-4 flex flex-col shrink-0">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">schema</span>
+                        <h3 class="font-sora text-xs font-semibold uppercase tracking-wider text-primary">Multi-Agent Orchestration Pipeline</h3>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <div id="pill-market" class="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 text-[11px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-xs">hourglass_empty</span> Market
+                        </div>
+                        <div id="pill-social" class="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 text-[11px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-xs">hourglass_empty</span> Sentiment
+                        </div>
+                        <div id="pill-news" class="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 text-[11px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-xs">hourglass_empty</span> News
+                        </div>
+                        <div id="pill-fundamentals" class="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 text-[11px] text-on-surface-variant">
+                            <span class="material-symbols-outlined text-xs">hourglass_empty</span> Fundamentals
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Interactive Visual Stages -->
+                <div class="relative stage-connector py-2 flex items-center justify-between px-6 sm:px-12">
+                    <!-- Phase 1: Analyst Team -->
+                    <div class="relative z-10 flex flex-col items-center gap-1.5">
+                        <div id="phase-ring-1" class="w-10 h-10 rounded-full bg-primary/20 border border-primary flex items-center justify-center glow-primary">
+                            <span class="material-symbols-outlined text-primary text-base">groups</span>
+                        </div>
+                        <span id="phase-label-1" class="font-sora text-[11px] font-semibold text-primary">Analyst Team</span>
+                    </div>
+
+                    <!-- Phase 2: Debate -->
+                    <div class="relative z-10 flex flex-col items-center gap-1.5">
+                        <div id="phase-ring-2" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+                            <span class="material-symbols-outlined text-on-surface-variant text-base">forum</span>
+                        </div>
+                        <span id="phase-label-2" class="font-sora text-[11px] font-semibold text-on-surface-variant">Bull vs Bear Debate</span>
+                    </div>
+
+                    <!-- Phase 3: Strategy -->
+                    <div class="relative z-10 flex flex-col items-center gap-1.5">
+                        <div id="phase-ring-3" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+                            <span class="material-symbols-outlined text-on-surface-variant text-base">route</span>
+                        </div>
+                        <span id="phase-label-3" class="font-sora text-[11px] font-semibold text-on-surface-variant">Trader Strategy</span>
+                    </div>
+
+                    <!-- Phase 4: Risk & PM -->
+                    <div class="relative z-10 flex flex-col items-center gap-1.5">
+                        <div id="phase-ring-4" class="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+                            <span class="material-symbols-outlined text-on-surface-variant text-base">gavel</span>
+                        </div>
+                        <span id="phase-label-4" class="font-sora text-[11px] font-semibold text-on-surface-variant">Risk & Final Verdict</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Stream Console -->
+            <div class="glass-panel flex flex-col h-56 shrink-0 overflow-hidden">
+                <div class="bg-surface-container-highest/80 px-4 py-2 border-b border-outline-variant/30 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-secondary text-sm">terminal</span>
+                        <span class="font-sora text-xs font-semibold uppercase tracking-wider text-secondary">Real-Time Agent Stream Console</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-clear-terminal" class="text-xs text-on-surface-variant hover:text-white px-2 py-0.5 rounded bg-surface/50 border border-outline-variant/30">Clear</button>
+                    </div>
+                </div>
+                <div id="terminal-content" class="p-3 overflow-y-auto flex-1 bg-black/70 font-data-tabular space-y-1 text-xs">
+                    <div class="flex gap-2 text-xs">
+                        <span class="text-on-surface-variant">[Ready]</span>
+                        <span class="text-primary">[System]</span>
+                        <span class="text-on-surface">System initialized. Ready for multi-agent execution.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Workspace: Consensus Card & Tabbed Dossier -->
+        <aside class="w-full lg:w-96 flex flex-col gap-4 shrink-0">
+
+            <!-- Algorithm Consensus Card -->
+            <div class="glass-panel p-5 flex flex-col items-center justify-center text-center relative overflow-hidden shrink-0 border-t-2 border-primary glow-primary">
+                <span class="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-1">Algorithm Consensus Verdict</span>
+                <div id="consensus-signal" class="font-sora font-extrabold text-3xl text-primary text-glow-primary mb-3 tracking-tight">READY</div>
+
+                <div class="grid grid-cols-3 w-full border-t border-outline-variant/30 pt-3 text-center">
+                    <div>
+                        <div id="metric-confidence" class="font-data-tabular font-bold text-secondary text-base tnum">--%</div>
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">Conviction</div>
+                    </div>
+                    <div class="border-x border-outline-variant/30">
+                        <div id="metric-risk" class="font-data-tabular font-bold text-amber-risk text-base tnum">--</div>
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">Risk Grade</div>
+                    </div>
+                    <div>
+                        <div id="metric-allocation" class="font-data-tabular font-bold text-primary text-base tnum">--%</div>
+                        <div class="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">Allocation</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Intelligence Dossier -->
+            <div class="glass-panel flex-1 flex flex-col overflow-hidden min-h-[420px]">
+                <!-- Tabs -->
+                <div class="flex border-b border-outline-variant/30 text-xs overflow-x-auto bg-surface-container/30">
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-primary text-primary font-semibold uppercase tracking-wider bg-surface-container/50 whitespace-nowrap" data-tab="summary">Summary</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="technical">Technical</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="sentiment">Sentiment</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="news">News</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="fundamentals">Fundamentals</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="debate">Debate</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="decision">Decision</button>
+                </div>
+
+                <!-- Dossier Content Body -->
+                <div id="dossier-body" class="p-4 overflow-y-auto flex-1 markdown-content text-sm text-slate-300 space-y-3">
+                    <div class="text-center text-on-surface-variant py-12">
+                        <span class="material-symbols-outlined text-4xl mb-2 text-outline-variant">article</span>
+                        <p class="font-medium text-xs uppercase tracking-wider">Run analysis to generate multi-agent intelligence dossier</p>
+                    </div>
+                </div>
+
+                <!-- Dossier Action Footer -->
+                <div class="p-3 border-t border-outline-variant/30 flex items-center justify-between text-xs bg-surface-container/20">
+                    <button id="btn-copy-dossier" class="flex items-center gap-1.5 text-on-surface-variant hover:text-white px-2.5 py-1.5 rounded bg-surface border border-outline-variant/40">
+                        <span class="material-symbols-outlined text-sm">content_copy</span> Copy Report
+                    </button>
+                    <button id="btn-download-dossier" class="flex items-center gap-1.5 text-primary hover:text-primary-fixed px-2.5 py-1.5 rounded bg-primary/10 border border-primary/40 font-semibold">
+                        <span class="material-symbols-outlined text-sm">download</span> Download .MD
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Client Script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

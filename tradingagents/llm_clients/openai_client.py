@@ -32,6 +32,12 @@ class NormalizedChatOpenAI(ChatOpenAI):
     stays small.
     """
 
+    def _get_request_payload(self, input_, *, stop=None, **kwargs):
+        payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        if "messages" in payload:
+            payload["messages"] = _flatten_multi_tool_calls(payload["messages"])
+        return payload
+
     def invoke(self, input, config=None, **kwargs):
         return normalize_content(super().invoke(input, config, **kwargs))
 
@@ -66,6 +72,41 @@ class LocalCompatibleChatOpenAI(NormalizedChatOpenAI):
         if resolved == "function_calling":
             kwargs.setdefault("tool_choice", None)
         return super().with_structured_output(schema, method=method, **kwargs)
+
+
+def _flatten_multi_tool_calls(messages: list[dict]) -> list[dict]:
+    """If an assistant message has multiple tool calls, split into sequential pairs.
+
+    Endpoints like NVIDIA NIM Llama 3.2 reject assistant messages with > 1
+    tool_calls ('This model only supports single tool-calls at once!').
+    Splitting them into sequential assistant-tool pairs makes them compatible.
+    """
+    new_messages = []
+    i = 0
+    while i < len(messages):
+        msg = messages[i]
+        if isinstance(msg, dict) and msg.get("role") == "assistant" and len(msg.get("tool_calls") or []) > 1:
+            tool_calls = msg["tool_calls"]
+            tool_resps = {}
+            j = i + 1
+            while j < len(messages) and isinstance(messages[j], dict) and messages[j].get("role") == "tool":
+                tid = messages[j].get("tool_call_id")
+                if tid:
+                    tool_resps[tid] = messages[j]
+                j += 1
+
+            for tc in tool_calls:
+                new_msg = dict(msg)
+                new_msg["tool_calls"] = [tc]
+                new_messages.append(new_msg)
+                if tc.get("id") in tool_resps:
+                    new_messages.append(tool_resps[tc["id"]])
+
+            i = j
+        else:
+            new_messages.append(msg)
+            i += 1
+    return new_messages
 
 
 def _input_to_messages(input_: Any) -> list:

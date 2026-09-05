@@ -1334,5 +1334,26 @@ def analyze(
         raise typer.Exit(code=1) from None
 
 
+@app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host address to bind."),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to listen on."),
+    open_browser: bool = typer.Option(True, "--open-browser/--no-browser", help="Automatically open the web UI in your default browser."),
+):
+    """Launch the TradingAgents Studio Web UI."""
+    import webbrowser
+    import threading
+    from tradingagents.web.server import run_server
+
+    if open_browser:
+        def _open():
+            time.sleep(1.2)
+            webbrowser.open(f"http://{host}:{port}")
+        threading.Thread(target=_open, daemon=True).start()
+
+    run_server(host=host, port=port)
+
+
 if __name__ == "__main__":
     app()
+

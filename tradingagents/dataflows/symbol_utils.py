@@ -123,6 +123,10 @@ def normalize_symbol(raw: str) -> str:
     # Broker CFD/qualifier suffixes Yahoo never uses.
     s = s.rstrip("+")
 
+    # Normalize .BOM (Bombay Stock Exchange) broker alias to Yahoo's .BO suffix
+    if s.endswith(".BOM"):
+        s = s[:-4] + ".BO"
+
     crypto = _normalize_crypto(s)
     if s in _ALIASES:
         canonical = _ALIASES[s]
@@ -141,3 +145,223 @@ def normalize_symbol(raw: str) -> str:
 def is_yahoo_safe(symbol: str) -> bool:
     """True when ``symbol`` only contains characters Yahoo symbols use."""
     return bool(symbol) and _YAHOO_SAFE.fullmatch(symbol) is not None
+
+
+# Known exchange suffixes across world markets supported by Yahoo Finance
+EXCHANGE_SUFFIXES = (
+    ".NS", ".BO", ".BOM", ".L", ".T", ".HK", ".DE", ".PA", ".TO", ".AX", ".SS", ".SZ"
+)
+
+# Registry of supported global equity markets and their parameters
+COUNTRY_EXCHANGES = {
+    "IN_NSE": {
+        "id": "IN_NSE",
+        "name": "India (NSE)",
+        "country": "India",
+        "exchange": "National Stock Exchange",
+        "flag": "🇮🇳",
+        "suffix": ".NS",
+        "benchmark": "^NSEI",
+        "benchmark_name": "Nifty 50",
+        "currency": "INR",
+        "currency_symbol": "₹",
+        "sample_tickers": ["RELIANCE", "TCS", "HDFCBANK", "INFY", "TATAMOTORS", "ITC", "ICICIBANK"],
+    },
+    "IN_BSE": {
+        "id": "IN_BSE",
+        "name": "India (BSE)",
+        "country": "India",
+        "exchange": "Bombay Stock Exchange",
+        "flag": "🇮🇳",
+        "suffix": ".BO",
+        "benchmark": "^BSESN",
+        "benchmark_name": "BSE Sensex",
+        "currency": "INR",
+        "currency_symbol": "₹",
+        "sample_tickers": ["500325", "RELIANCE", "TCS", "HDFCBANK", "INFY", "TATAMOTORS"],
+    },
+    "US": {
+        "id": "US",
+        "name": "United States (NYSE/NASDAQ)",
+        "country": "United States",
+        "exchange": "NYSE / NASDAQ",
+        "flag": "🇺🇸",
+        "suffix": "",
+        "benchmark": "SPY",
+        "benchmark_name": "S&P 500 ETF",
+        "currency": "USD",
+        "currency_symbol": "$",
+        "sample_tickers": ["NVDA", "AAPL", "MSFT", "TSLA", "AMZN", "GOOGL", "META", "SPY"],
+    },
+    "UK": {
+        "id": "UK",
+        "name": "United Kingdom (LSE)",
+        "country": "United Kingdom",
+        "exchange": "London Stock Exchange",
+        "flag": "🇬🇧",
+        "suffix": ".L",
+        "benchmark": "^FTSE",
+        "benchmark_name": "FTSE 100",
+        "currency": "GBP",
+        "currency_symbol": "£",
+        "sample_tickers": ["SHEL", "AZN", "HSBA", "ULVR", "BP", "RIO"],
+    },
+    "JP": {
+        "id": "JP",
+        "name": "Japan (TSE)",
+        "country": "Japan",
+        "exchange": "Tokyo Stock Exchange",
+        "flag": "🇯🇵",
+        "suffix": ".T",
+        "benchmark": "^N225",
+        "benchmark_name": "Nikkei 225",
+        "currency": "JPY",
+        "currency_symbol": "¥",
+        "sample_tickers": ["7203", "6758", "9984", "8306", "6861"],
+    },
+    "HK": {
+        "id": "HK",
+        "name": "Hong Kong (HKEX)",
+        "country": "Hong Kong",
+        "exchange": "Hong Kong Exchanges",
+        "flag": "🇭🇰",
+        "suffix": ".HK",
+        "benchmark": "^HSI",
+        "benchmark_name": "Hang Seng Index",
+        "currency": "HKD",
+        "currency_symbol": "HK$",
+        "sample_tickers": ["0700", "9988", "0941", "1299", "3690"],
+    },
+    "DE": {
+        "id": "DE",
+        "name": "Germany (XETRA)",
+        "country": "Germany",
+        "exchange": "Frankfurt / XETRA",
+        "flag": "🇩🇪",
+        "suffix": ".DE",
+        "benchmark": "^GDAXI",
+        "benchmark_name": "DAX Performance Index",
+        "currency": "EUR",
+        "currency_symbol": "€",
+        "sample_tickers": ["SAP", "SIE", "ALV", "VOW3", "BMW", "BAYN"],
+    },
+    "FR": {
+        "id": "FR",
+        "name": "France (Euronext Paris)",
+        "country": "France",
+        "exchange": "Euronext Paris",
+        "flag": "🇫🇷",
+        "suffix": ".PA",
+        "benchmark": "^FCHI",
+        "benchmark_name": "CAC 40",
+        "currency": "EUR",
+        "currency_symbol": "€",
+        "sample_tickers": ["MC", "OR", "TTE", "SAN", "AIR", "BNP"],
+    },
+    "CA": {
+        "id": "CA",
+        "name": "Canada (TSX)",
+        "country": "Canada",
+        "exchange": "Toronto Stock Exchange",
+        "flag": "🇨🇦",
+        "suffix": ".TO",
+        "benchmark": "^GSPTSE",
+        "benchmark_name": "S&P/TSX Composite",
+        "currency": "CAD",
+        "currency_symbol": "CA$",
+        "sample_tickers": ["SHOP", "RY", "TD", "ENB", "CNR", "BMO"],
+    },
+    "AU": {
+        "id": "AU",
+        "name": "Australia (ASX)",
+        "country": "Australia",
+        "exchange": "Australian Securities Exchange",
+        "flag": "🇦🇺",
+        "suffix": ".AX",
+        "benchmark": "^AXJO",
+        "benchmark_name": "S&P/ASX 200",
+        "currency": "AUD",
+        "currency_symbol": "A$",
+        "sample_tickers": ["BHP", "CBA", "CSL", "NAB", "WBC", "FMG"],
+    },
+    "CN_SH": {
+        "id": "CN_SH",
+        "name": "China (Shanghai SSE)",
+        "country": "China",
+        "exchange": "Shanghai Stock Exchange",
+        "flag": "🇨🇳",
+        "suffix": ".SS",
+        "benchmark": "000001.SS",
+        "benchmark_name": "SSE Composite",
+        "currency": "CNY",
+        "currency_symbol": "¥",
+        "sample_tickers": ["600519", "601398", "601857", "600036"],
+    },
+    "CN_SZ": {
+        "id": "CN_SZ",
+        "name": "China (Shenzhen SZSE)",
+        "country": "China",
+        "exchange": "Shenzhen Stock Exchange",
+        "flag": "🇨🇳",
+        "suffix": ".SZ",
+        "benchmark": "399001.SZ",
+        "benchmark_name": "SZSE Component",
+        "currency": "CNY",
+        "currency_symbol": "¥",
+        "sample_tickers": ["000858", "002594", "300750", "000333"],
+    },
+    "CRYPTO": {
+        "id": "CRYPTO",
+        "name": "Crypto & Commodities",
+        "country": "Global",
+        "exchange": "Decentralized / COMEX",
+        "flag": "🪙",
+        "suffix": "",
+        "benchmark": "BTC-USD",
+        "benchmark_name": "Bitcoin USD",
+        "currency": "USD",
+        "currency_symbol": "$",
+        "sample_tickers": ["BTC-USD", "ETH-USD", "SOL-USD", "GC=F", "CL=F"],
+    },
+}
+
+
+def format_ticker_for_country(raw_ticker: str, market_id: str = "US") -> str:
+    """Format and apply the correct country exchange suffix automatically.
+
+    Strips any existing recognized exchange suffix (e.g. ``.NS``, ``.BO``, ``.BOM``)
+    and applies the selected market's canonical suffix. Preserves commodities/forex
+    symbols and indices (e.g. ``GC=F``, ``^NSEI``).
+    """
+    if not isinstance(raw_ticker, str) or not raw_ticker.strip():
+        return ""
+
+    s = raw_ticker.strip().upper()
+
+    # Index or special symbol (e.g. ^NSEI, GC=F)
+    if s.startswith("^") or "=" in s:
+        return normalize_symbol(s)
+
+    # Commodity / Forex / Crypto aliases
+    if s in _ALIASES:
+        return normalize_symbol(s)
+
+    # Crypto detection
+    base = crypto_base(s)
+    if base is not None:
+        return f"{base}-USD"
+
+    # Strip existing exchange suffix if present
+    base_sym = s
+    for suffix in sorted(EXCHANGE_SUFFIXES, key=len, reverse=True):
+        if base_sym.endswith(suffix):
+            base_sym = base_sym[: -len(suffix)]
+            break
+
+    market_info = COUNTRY_EXCHANGES.get(market_id, COUNTRY_EXCHANGES.get("US", {}))
+    target_suffix = market_info.get("suffix", "")
+
+    if target_suffix:
+        return f"{base_sym}{target_suffix}"
+    return base_sym
+
