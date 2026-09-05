@@ -361,20 +361,36 @@ async def handle_get_config(request: web.Request) -> web.Response:
     today = datetime.datetime.now().strftime("%Y-%m-%d")
 
     providers = [
-        {"id": "openai", "name": "OpenAI", "models": ["gpt-5.6", "gpt-5.4", "gpt-4o", "gpt-4o-mini"]},
+        {"id": "nvidia", "name": "NVIDIA NIM (Build.nvidia.com)", "models": ["meta/llama-3.3-70b-instruct", "deepseek-ai/deepseek-r1", "meta/llama-3.1-405b-instruct", "mistralai/mistral-large-2-instruct"]},
         {"id": "google", "name": "Google Gemini", "models": ["gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash"]},
+        {"id": "openai", "name": "OpenAI", "models": ["gpt-5.6", "gpt-5.4", "gpt-4o", "gpt-4o-mini"]},
         {"id": "anthropic", "name": "Anthropic Claude", "models": ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]},
         {"id": "deepseek", "name": "DeepSeek", "models": ["deepseek-chat", "deepseek-reasoner"]},
         {"id": "groq", "name": "Groq Llama", "models": ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]},
         {"id": "ollama", "name": "Ollama (Local)", "models": ["llama3.3", "qwen2.5:14b", "deepseek-r1:14b"]},
     ]
 
+    # Auto-detect which provider has a key configured
+    detected_provider = "openai"
+    if os.environ.get("NVIDIA_API_KEY"):
+        detected_provider = "nvidia"
+    elif os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        detected_provider = "google"
+    elif os.environ.get("OPENAI_API_KEY"):
+        detected_provider = "openai"
+    elif os.environ.get("ANTHROPIC_API_KEY"):
+        detected_provider = "anthropic"
+    elif os.environ.get("DEEPSEEK_API_KEY"):
+        detected_provider = "deepseek"
+    elif os.environ.get("GROQ_API_KEY"):
+        detected_provider = "groq"
+
     return web.json_response({
         "status": "success",
         "today": today,
-        "current_provider": cfg.get("llm_provider", "openai"),
-        "deep_think_llm": cfg.get("deep_think_llm", "gpt-5.6"),
-        "quick_think_llm": cfg.get("quick_think_llm", "gpt-5.6-luna"),
+        "current_provider": detected_provider,
+        "deep_think_llm": cfg.get("deep_think_llm", "meta/llama-3.3-70b-instruct" if detected_provider == "nvidia" else "gpt-5.6"),
+        "quick_think_llm": cfg.get("quick_think_llm", "meta/llama-3.3-70b-instruct" if detected_provider == "nvidia" else "gpt-5.6-luna"),
         "debate_rounds": cfg.get("max_debate_rounds", 1),
         "results_dir": str(cfg.get("results_dir", "")),
         "providers": providers,

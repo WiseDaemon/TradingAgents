@@ -92,6 +92,10 @@ async function loadConfiguration() {
             if (dateInput && data.today) {
                 dateInput.value = data.today;
             }
+            const provSelect = document.getElementById("select-provider");
+            if (provSelect && data.current_provider) {
+                provSelect.value = data.current_provider;
+            }
         }
     } catch (err) {
         console.error("Failed to load config:", err);
