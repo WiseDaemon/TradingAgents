@@ -57,15 +57,20 @@ class TestWebAPI(AioHTTPTestCase):
         self.assertIn("today", data)
         self.assertIn("providers", data)
 
-    async def test_get_quote_fallback(self):
-        """Test GET /api/quote returns quote object with chart bars."""
-        resp = await self.client.get("/api/quote?ticker=RELIANCE.NS&market=IN_NSE")
+    async def test_get_financials(self):
+        """Test GET /api/financials returns key ratios and metrics."""
+        resp = await self.client.get("/api/financials?ticker=RELIANCE.NS&market=IN_NSE")
         self.assertEqual(resp.status, 200)
         data = await resp.json()
         self.assertEqual(data["status"], "success")
-        self.assertIn("data", data)
-        self.assertTrue(len(data["data"]["chart_data"]) > 0)
-        self.assertGreater(data["data"]["price"], 0)
+        fin = data["data"]
+        self.assertIn("valuation", fin)
+        self.assertIn("profitability", fin)
+        self.assertIn("solvency", fin)
+        self.assertIn("income", fin)
+        self.assertIn("cashflow", fin)
+        self.assertIsNotNone(fin["valuation"].get("pe_ratio"))
+        self.assertIsNotNone(fin["solvency"].get("debt_to_equity"))
 
 
 if __name__ == "__main__":

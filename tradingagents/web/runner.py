@@ -80,6 +80,19 @@ class AnalysisJob:
             "final_trade_decision": "",
         }
 
+        self.debate_data: dict[str, Any] = {
+            "bull_thesis": "",
+            "bear_thesis": "",
+            "judge_ruling": "",
+            "bull_points": [],
+            "bear_points": [],
+            "risk_debates": {
+                "aggressive": "",
+                "neutral": "",
+                "conservative": "",
+            },
+        }
+
         self.decision_info: dict[str, Any] = {
             "signal": "PENDING",
             "confidence": 0,
@@ -127,6 +140,19 @@ class AnalysisJob:
             "section": section,
             "title": title,
             "content": content,
+        })
+
+    def update_debate(self, debate_payload: dict[str, Any]):
+        """Push structured debate points to the frontend."""
+        self.debate_data.update(debate_payload)
+        self.push_event("debate_update", self.debate_data)
+
+    def desk_action(self, agent: str, action: str, speech: str = ""):
+        """Push animated office desk actions (typing, debating, reviewing) with thought bubbles."""
+        self.push_event("desk_action", {
+            "agent": agent,
+            "action": action,  # typing, talking, reviewing, finished
+            "speech": speech,
         })
 
     def start(self):
@@ -298,10 +324,37 @@ class AnalysisJob:
 
                     debate_md = f"### Bull Thesis\n{bull}\n\n### Bear Counter-Thesis\n{bear}\n\n### Manager Synthesis\n{judge}"
                     self.update_report("investment_plan", "Research Team Debate", debate_md)
+
+                    # Extract debate bullet points
+                    bull_pts = [p.strip("- *") for p in bull.split("\n") if p.strip().startswith(("-", "*", "1.", "2.", "3."))][:5]
+                    bear_pts = [p.strip("- *") for p in bear.split("\n") if p.strip().startswith(("-", "*", "1.", "2.", "3."))][:5]
+                    self.update_debate({
+                        "bull_thesis": bull,
+                        "bear_thesis": bear,
+                        "judge_ruling": judge,
+                        "bull_points": bull_pts or [bull[:180] + "..."],
+                        "bear_points": bear_pts or [bear[:180] + "..."],
+                    })
+
                     if judge:
                         self.update_agent_status("Research Manager", "completed")
                         self.update_phase(3, "Trading Strategy", "Trader")
                         self.update_agent_status("Trader", "in_progress")
+                        self.desk_action("Research Manager", "talking", "Debate concluded. Bull thesis approved.")
+
+                # Risk Debate State
+                if chunk.get("risk_debate_state"):
+                    risk_state = chunk["risk_debate_state"]
+                    agg = risk_state.get("aggressive_history", "")
+                    neu = risk_state.get("neutral_history", "")
+                    con = risk_state.get("conservative_history", "")
+                    self.update_debate({
+                        "risk_debates": {
+                            "aggressive": agg,
+                            "neutral": neu,
+                            "conservative": con,
+                        }
+                    })
 
                 # Trader Plan
                 if chunk.get("trader_investment_plan"):
@@ -312,12 +365,14 @@ class AnalysisJob:
                     self.update_agent_status("Neutral Analyst", "completed")
                     self.update_agent_status("Conservative Analyst", "completed")
                     self.update_agent_status("Portfolio Manager", "in_progress")
+                    self.desk_action("Trader", "typing", "Order execution logic finalized.")
 
                 # Final Decision
                 if chunk.get("final_trade_decision"):
                     decision_text = chunk["final_trade_decision"]
                     self.update_report("final_trade_decision", "Portfolio Manager Decision", decision_text)
                     self.update_agent_status("Portfolio Manager", "completed")
+                    self.desk_action("Portfolio Manager", "talking", "Final Portfolio Committee Decision Signed Off.")
                     self._parse_decision(decision_text)
 
                 trace.append(chunk)
@@ -424,21 +479,47 @@ class AnalysisJob:
 - **Intrinsic Value Estimate**: 15% upside to DCF fair value.
 - **Fundamentals Signal**: **HIGH QUALITY / UNDERVALUED**""")),
             ("agent", ("Fundamentals Analyst", "completed")),
+            ("desk", ("Fundamentals Analyst", "finished", "DCF model complete.")),
             ("phase", (2, "Bull vs Bear Debate", "Research Manager")),
+            ("desk", ("Bull Researcher", "talking", "Consumer monetization is surging.")),
             ("agent", ("Bull Researcher", "in_progress")),
             ("log", ("Agent", "Bull Researcher: Strong catalysts in retail and digital services will expand margins.")),
             ("agent", ("Bull Researcher", "completed")),
+            ("desk", ("Bear Researcher", "talking", "High Capex is straining free cash flows.")),
             ("agent", ("Bear Researcher", "in_progress")),
             ("log", ("Agent", "Bear Researcher: High capital expenditure could strain near-term free cash flow if yields spike.")),
             ("agent", ("Bear Researcher", "completed")),
+            ("desk", ("Research Manager", "talking", "Bull arguments prevail. Approving long recommendation.")),
             ("agent", ("Research Manager", "in_progress")),
             ("log", ("Agent", "Research Manager: Bull argument predominates. Growth runway easily outweighs short-term capex drag.")),
+            ("debate", {
+                "bull_thesis": "Rapid retail footprint expansion, ARPU growth across 5G networks, and dominant domestic market share provide an unshakeable operational moat.",
+                "bear_thesis": "Heavy ongoing capital expenditure cycles and vulnerability to petrochemical refining margin compression pose downside volatility.",
+                "judge_ruling": "Structural earnings growth in consumer facing divisions outstrips cyclical commodities drag. Conviction leans Bullish with tight risk limits.",
+                "bull_points": [
+                    "Consumer retail EBITDA grew +24% YoY with increasing store footfall.",
+                    "5G tariff monetization driving 12% ARPU expansion.",
+                    "Clean corporate balance sheet with Net Debt/EBITDA of 1.4x.",
+                    "Strong domestic institutional backing preventing sharp pullbacks."
+                ],
+                "bear_points": [
+                    "Near-term Free Cash Flow yield compressed by ongoing CapEx rollouts.",
+                    "Global refining margins vulnerable to crude demand fluctuations.",
+                    "Valuation multiple at +1 standard deviation above 3-year median."
+                ],
+                "risk_debates": {
+                    "aggressive": "Allocate full 12% portfolio weight to capture rapid breakout momentum.",
+                    "neutral": "Recommend 7.5% allocation with a standard 5% trailing stop-loss.",
+                    "conservative": "Cap position size at 5% with strict delta hedge until next earnings report."
+                }
+            }),
             ("report", ("investment_plan", "Research Team Debate", f"""### Research Team Consensus
 - **Bull Thesis**: Rapid retail expansion and consumer monetization provide a resilient defensive moat.
 - **Bear Counterpoint**: Risk of commodity price fluctuations and valuation compression.
 - **Manager Ruling**: The structural earnings growth and deleveraging path outweigh margin compression risks. Recommending aggressive accumulation.""")),
             ("agent", ("Research Manager", "completed")),
             ("phase", (3, "Trading Strategy", "Trader")),
+            ("desk", ("Trader", "typing", "Structuring limit order grid and trailing stop...")),
             ("agent", ("Trader", "in_progress")),
             ("log", ("Agent", f"Trader formulating staggered accumulation strategy with trailing stop at {market_info.get('currency_symbol', '')}2,820.")),
             ("report", ("trader_investment_plan", "Trading Strategy Plan", f"""### Execution Strategy
@@ -448,10 +529,12 @@ class AnalysisJob:
 - **Target Price**: +16.5% from current level.
 - **Stop Loss**: -4.8% trailing stop.""")),
             ("agent", ("Trader", "completed")),
+            ("desk", ("Trader", "finished", "Order plan routed to Risk & PM committee.")),
             ("phase", (4, "Risk Management & Portfolio Manager", "Portfolio Manager")),
             ("agent", ("Aggressive Analyst", "completed")),
             ("agent", ("Neutral Analyst", "completed")),
             ("agent", ("Conservative Analyst", "completed")),
+            ("desk", ("Portfolio Manager", "talking", "Risk limits passed. Authorizing STRONG BUY verdict.")),
             ("agent", ("Portfolio Manager", "in_progress")),
             ("log", ("Agent", "Portfolio Manager: Approving transaction proposal. Final rating: STRONG BUY.")),
             ("report", ("final_trade_decision", "Portfolio Manager Decision", f"""### Final Portfolio Management Committee Decision
@@ -464,6 +547,7 @@ class AnalysisJob:
   * Accelerating earnings growth across core divisions.
   * Strong macro alignment vs {market_info.get('benchmark_name', 'Benchmark Index')}.""")),
             ("agent", ("Portfolio Manager", "completed")),
+            ("desk", ("Portfolio Manager", "finished", "Analysis execution complete.")),
             ("decision", {
                 "signal": "STRONG BUY",
                 "confidence": 89,
@@ -482,6 +566,10 @@ class AnalysisJob:
                 self.update_phase(*payload)
             elif action == "agent":
                 self.update_agent_status(*payload)
+            elif action == "desk":
+                self.desk_action(*payload)
+            elif action == "debate":
+                self.update_debate(payload)
             elif action == "log":
                 self.log(*payload)
             elif action == "report":

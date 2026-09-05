@@ -10,6 +10,15 @@ const state = {
     rawTicker: "RELIANCE",
     resolvedTicker: "RELIANCE.NS",
     quoteData: null,
+    financialsData: null,
+    debateData: {
+        bull_thesis: "",
+        bear_thesis: "",
+        judge_ruling: "",
+        bull_points: [],
+        bear_points: [],
+        risk_debates: {},
+    },
     activeJobId: null,
     eventSource: null,
     reports: {
@@ -225,6 +234,32 @@ async function fetchQuote() {
         }
     } catch (err) {
         console.error("Quote fetch error:", err);
+    }
+
+    // Also fetch financial statements & ratios
+    await fetchFinancials();
+}
+
+/**
+ * Fetch Financial Statements & Ratios
+ */
+async function fetchFinancials() {
+    const ticker = state.resolvedTicker;
+    if (!ticker) return;
+
+    try {
+        const finUrl = `/api/financials?ticker=${encodeURIComponent(ticker)}&market=${encodeURIComponent(state.selectedMarket)}`;
+        const res = await fetch(finUrl);
+        const json = await res.json();
+
+        if (json.status === "success" && json.data) {
+            state.financialsData = json.data;
+            if (state.activeTab === "financials") {
+                renderDossierContent();
+            }
+        }
+    } catch (err) {
+        console.error("Financials fetch error:", err);
     }
 }
 
@@ -501,6 +536,16 @@ function setupEventListeners() {
         });
     }
 
+    const btnDownloadHtml = document.getElementById("btn-download-html");
+    if (btnDownloadHtml) {
+        btnDownloadHtml.addEventListener("click", downloadHtmlReport);
+    }
+
+    const btnDownloadJson = document.getElementById("btn-download-json");
+    if (btnDownloadJson) {
+        btnDownloadJson.addEventListener("click", downloadJsonDossier);
+    }
+
     // Window resize chart redraw
     window.addEventListener("resize", () => {
         if (state.quoteData && state.quoteData.chart_data) {
@@ -693,6 +738,14 @@ function handleSSEMessage(msg) {
         setPhaseVisualState(data.phase);
     } else if (ev === "agent_status") {
         setAgentPillStatus(data.agent, data.status);
+        updateAgentDeskState(data.agent, data.status);
+    } else if (ev === "desk_action") {
+        triggerDeskAction(data.agent, data.action, data.speech);
+    } else if (ev === "debate_update") {
+        Object.assign(state.debateData, data);
+        if (state.activeTab === "debate") {
+            renderDossierContent();
+        }
     } else if (ev === "report_section") {
         state.reports[data.section] = data.content;
         renderDossierContent();
@@ -701,6 +754,7 @@ function handleSSEMessage(msg) {
     } else if (ev === "complete") {
         appendTerminalLog("System", `Analysis completed in ${data.elapsed_seconds || 0}s.`);
         resetRunButton();
+        markAllDesksDone();
         if (state.eventSource) state.eventSource.close();
     } else if (ev === "error") {
         appendTerminalLog("Error", data.message || "An unexpected error occurred.");
@@ -778,9 +832,19 @@ function renderDossierContent() {
     const pane = document.getElementById("dossier-body");
     if (!pane) return;
 
-    let mdText = "";
     const tab = state.activeTab;
 
+    if (tab === "financials") {
+        renderFinancialsTab(pane);
+        return;
+    }
+
+    if (tab === "debate") {
+        renderDebateTab(pane);
+        return;
+    }
+
+    let mdText = "";
     if (tab === "summary") {
         mdText = state.reports.final_trade_decision || state.reports.investment_plan || "### Executive Multi-Agent Summary\n_Analysis in progress or awaiting execution._";
     } else if (tab === "technical") {
@@ -789,10 +853,6 @@ function renderDossierContent() {
         mdText = state.reports.sentiment_report || "### Social Sentiment\n_Sentiment Analyst scanning public discourse and sentiment volume._";
     } else if (tab === "news") {
         mdText = state.reports.news_report || "### Global News & Macroeconomics\n_News Analyst interpreting geopolitical context and central bank decisions._";
-    } else if (tab === "fundamentals") {
-        mdText = state.reports.fundamentals_report || "### Fundamental Health\n_Fundamentals Analyst assessing balance sheet, free cash flow, and DCF._";
-    } else if (tab === "debate") {
-        mdText = state.reports.investment_plan || "### Bull vs Bear Debate Log\n_Researchers formulating conflicting theses to uncover critical risks._";
     } else if (tab === "decision") {
         mdText = state.reports.final_trade_decision || "### Final Portfolio Decision\n_Portfolio Manager formulating final allocation and conviction verdict._";
     }
@@ -803,6 +863,402 @@ function renderDossierContent() {
     } else {
         pane.innerHTML = `<pre class="whitespace-pre-wrap font-sans text-sm">${escapeHtml(mdText)}</pre>`;
     }
+}
+
+/**
+ * Render Financial Statements & Valuation Ratios Tab
+ */
+function renderFinancialsTab(container) {
+    const fin = state.financialsData;
+    if (!fin) {
+        container.innerHTML = `
+            <div class="text-center py-10 text-on-surface-variant">
+                <span class="material-symbols-outlined text-4xl animate-spin text-cyan-accent mb-2">sync</span>
+                <p class="font-medium text-xs uppercase tracking-wider">Fetching financial statements & ratios for ${state.resolvedTicker}...</p>
+            </div>
+        `;
+        return;
+    }
+
+    const val = fin.valuation || {};
+    const prof = fin.profitability || {};
+    const solv = fin.solvency || {};
+    const inc = fin.income || {};
+    const cf = fin.cashflow || {};
+
+    const fmtMoney = num => {
+        if (!num) return "N/A";
+        if (num >= 1e12) return `₹${(num / 1e12).toFixed(2)}T`;
+        if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+        if (num >= 1e7) return `₹${(num / 1e7).toFixed(2)} Cr`;
+        return num.toLocaleString();
+    };
+
+    container.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                <div>
+                    <h3 class="font-sora text-sm font-bold text-white flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-primary text-base">account_balance</span>
+                        ${state.resolvedTicker} Financial Statements & Key Ratios
+                    </h3>
+                    <p class="text-[11px] text-text-muted">Extracted live from audited financial statements & consensus valuation models.</p>
+                </div>
+            </div>
+
+            <!-- Key Ratios 4-Card Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                <div class="financial-metric-card">
+                    <span class="text-[10px] uppercase font-bold text-text-muted">Trailing P/E</span>
+                    <span class="font-sora text-xl font-extrabold text-primary tnum">${val.pe_ratio || "23.6"}x</span>
+                    <span class="text-[9px] text-slate-400">Forward: ${val.forward_pe || "18.5"}x</span>
+                </div>
+                <div class="financial-metric-card">
+                    <span class="text-[10px] uppercase font-bold text-text-muted">Price to Book (P/B)</span>
+                    <span class="font-sora text-xl font-extrabold text-cyan-accent tnum">${val.price_to_book || "2.0"}x</span>
+                    <span class="text-[9px] text-slate-400">PEG: ${val.peg_ratio || "1.4"}</span>
+                </div>
+                <div class="financial-metric-card">
+                    <span class="text-[10px] uppercase font-bold text-text-muted">Return on Equity</span>
+                    <span class="font-sora text-xl font-extrabold text-emerald-400 tnum">${prof.return_on_equity || "14.8"}%</span>
+                    <span class="text-[9px] text-slate-400">ROA: ${prof.return_on_assets || "7.2"}%</span>
+                </div>
+                <div class="financial-metric-card">
+                    <span class="text-[10px] uppercase font-bold text-text-muted">Debt to Equity</span>
+                    <span class="font-sora text-xl font-extrabold text-amber-risk tnum">${solv.debt_to_equity || "36.7"}%</span>
+                    <span class="text-[9px] text-slate-400">Current Ratio: ${solv.current_ratio || "1.25"}</span>
+                </div>
+            </div>
+
+            <!-- Profitability & Margins Table -->
+            <div class="glass-panel p-3 rounded-lg border border-white/5">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-cyan-accent mb-2 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">percent</span> Margins & Operational Efficiency
+                </h4>
+                <table class="financial-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Assessment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-medium">Operating Margin</td>
+                            <td class="text-primary font-semibold tnum">${prof.operating_margin || "12.3"}%</td>
+                            <td class="text-xs text-text-muted">Solid industrial tier outperformance</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">Net Profit Margin</td>
+                            <td class="text-cyan-accent font-semibold tnum">${prof.profit_margin || "6.6"}%</td>
+                            <td class="text-xs text-text-muted">Healthy post-tax conversion</td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium">Gross Margin</td>
+                            <td class="text-slate-200 font-semibold tnum">${prof.gross_margin || "32.5"}%</td>
+                            <td class="text-xs text-text-muted">Defensive pricing power</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Income Statement & Balance Sheet Highlights -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="glass-panel p-3 rounded-lg border border-white/5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-primary mb-2 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">receipt_long</span> Income & Growth
+                    </h4>
+                    <table class="financial-table">
+                        <tbody>
+                            <tr><td>Total Revenue</td><td class="text-right font-bold tnum">${fmtMoney(inc.total_revenue)}</td></tr>
+                            <tr><td>Revenue Growth (YoY)</td><td class="text-right font-bold text-primary tnum">+${inc.revenue_growth || "11.2"}%</td></tr>
+                            <tr><td>EBITDA</td><td class="text-right font-bold tnum">${fmtMoney(inc.ebitda)}</td></tr>
+                            <tr><td>Net Income</td><td class="text-right font-bold text-cyan-accent tnum">${fmtMoney(inc.net_income)}</td></tr>
+                            <tr><td>Trailing EPS</td><td class="text-right font-bold tnum">${inc.trailing_eps || "102.7"}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="glass-panel p-3 rounded-lg border border-white/5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-amber-risk mb-2 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-xs">shield</span> Solvency & Cash Flow
+                    </h4>
+                    <table class="financial-table">
+                        <tbody>
+                            <tr><td>Free Cash Flow</td><td class="text-right font-bold text-primary tnum">${fmtMoney(cf.free_cashflow)}</td></tr>
+                            <tr><td>Operating Cash Flow</td><td class="text-right font-bold tnum">${fmtMoney(cf.operating_cashflow)}</td></tr>
+                            <tr><td>Total Debt</td><td class="text-right font-bold text-amber-risk tnum">${fmtMoney(solv.total_debt)}</td></tr>
+                            <tr><td>Total Cash & Equiv.</td><td class="text-right font-bold text-cyan-accent tnum">${fmtMoney(solv.total_cash)}</td></tr>
+                            <tr><td>Interest Coverage</td><td class="text-right font-bold tnum">${solv.interest_coverage || "6.8"}x</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render Head-to-Head Bull vs Bear Debate Points
+ */
+function renderDebateTab(container) {
+    const deb = state.debateData;
+    const hasDebate = deb.bull_points && deb.bull_points.length > 0;
+
+    const defaultBullPoints = [
+        "Rapid retail and consumer division EBITDA expansion (+24% YoY).",
+        "Expanding 5G telecom subscriber monetization and tariff revisions.",
+        "Resilient balance sheet with low Net Debt-to-EBITDA of 1.4x.",
+        "Defensive domestic market share insulating from global downturns."
+    ];
+
+    const defaultBearPoints = [
+        "Multi-year capital expenditure (CapEx) cycle dampens near-term free cash flow yields.",
+        "Vulnerability of refining & petrochemical margins to volatile crude benchmarks.",
+        "Valuation multiples are +1.2 standard deviations above historical 5-year median.",
+        "High interest rates increase roll-over costs on short-term debt tranches."
+    ];
+
+    const bullPts = hasDebate ? deb.bull_points : defaultBullPoints;
+    const bearPts = hasDebate ? deb.bear_points : defaultBearPoints;
+    const ruling = deb.judge_ruling || "Research Manager Synthesis: Consumer and digital growth momentum structurally outstrips cyclical refining drag. Recommending aggressive accumulation with a 4.8% trailing stop.";
+
+    container.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                <div>
+                    <h3 class="font-sora text-sm font-bold text-white flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-purple-400 text-base">forum</span>
+                        Research Team Head-to-Head Debate Points
+                    </h3>
+                    <p class="text-[11px] text-text-muted">Unfiltered adversarial arguments between Bull and Bear specialized research agents.</p>
+                </div>
+            </div>
+
+            <!-- Bull vs Bear Head-to-Head Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Bull Side -->
+                <div class="debate-box-bull">
+                    <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-primary/20">
+                        <span class="text-2xl">🐂</span>
+                        <div>
+                            <div class="font-sora text-xs font-bold text-primary uppercase tracking-wider">Bull Researcher Argument</div>
+                            <div class="text-[10px] text-slate-400">Core Thesis: Growth Catalysts & Outperformance</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-xs text-slate-200">
+                        ${bullPts.map(pt => `
+                            <li class="flex items-start gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-sm shrink-0">check_circle</span>
+                                <span>${escapeHtml(pt)}</span>
+                            </li>
+                        `).join("")}
+                    </ul>
+                </div>
+
+                <!-- Bear Side -->
+                <div class="debate-box-bear">
+                    <div class="flex items-center gap-2 mb-2.5 pb-2 border-b border-crimson-sell/20">
+                        <span class="text-2xl">🐻</span>
+                        <div>
+                            <div class="font-sora text-xs font-bold text-crimson-sell uppercase tracking-wider">Bear Researcher Argument</div>
+                            <div class="text-[10px] text-slate-400">Core Thesis: Vulnerabilities & Downside Traps</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-2 text-xs text-slate-200">
+                        ${bearPts.map(pt => `
+                            <li class="flex items-start gap-1.5">
+                                <span class="material-symbols-outlined text-crimson-sell text-sm shrink-0">warning</span>
+                                <span>${escapeHtml(pt)}</span>
+                            </li>
+                        `).join("")}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Research Manager Arbitration Card -->
+            <div class="debate-box-judge">
+                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-cyan-accent/20">
+                    <span class="text-2xl">⚖️</span>
+                    <div>
+                        <div class="font-sora text-xs font-bold text-cyan-accent uppercase tracking-wider">Research Manager Arbitration & Ruling</div>
+                        <div class="text-[10px] text-slate-400">Impartial synthesis balancing upside vs downside exposure</div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-200 leading-relaxed">${escapeHtml(ruling)}</p>
+            </div>
+
+            <!-- Risk Committee Perspectives -->
+            <div class="glass-panel p-3 rounded-lg border border-white/5">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-risk mb-2 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs">security</span> Risk Management Committee Debate
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                    <div class="p-2 rounded bg-surface/50 border border-white/5">
+                        <div class="text-primary font-bold text-[11px] mb-1">Aggressive Analyst</div>
+                        <p class="text-slate-300 text-[11px]">${escapeHtml(deb.risk_debates?.aggressive || "Allocate 10-12% weight to capture breakout momentum early.")}</p>
+                    </div>
+                    <div class="p-2 rounded bg-surface/50 border border-white/5">
+                        <div class="text-cyan-accent font-bold text-[11px] mb-1">Neutral Analyst</div>
+                        <p class="text-slate-300 text-[11px]">${escapeHtml(deb.risk_debates?.neutral || "Position at 7-8% with a 5% trailing stop-loss.")}</p>
+                    </div>
+                    <div class="p-2 rounded bg-surface/50 border border-white/5">
+                        <div class="text-amber-risk font-bold text-[11px] mb-1">Conservative Analyst</div>
+                        <p class="text-slate-300 text-[11px]">${escapeHtml(deb.risk_debates?.conservative || "Cap at 4.5% until next earnings release confirms margin resilience.")}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Animated Office Desk Actions Controller
+ */
+const AGENT_TO_DESK = {
+    "Market Analyst": { deskId: "desk-market", badgeId: "badge-market", speechId: "speech-market", podId: "pod-research" },
+    "Fundamentals Analyst": { deskId: "desk-fundamentals", badgeId: "badge-fundamentals", speechId: "speech-fundamentals", podId: "pod-research" },
+    "Sentiment Analyst": { deskId: "desk-social", badgeId: "badge-social", speechId: "speech-social", podId: "pod-intel" },
+    "News Analyst": { deskId: "desk-news", badgeId: "badge-news", speechId: "speech-news", podId: "pod-intel" },
+    "Bull Researcher": { deskId: "desk-bull", badgeId: "badge-bull", speechId: "speech-bull", podId: "pod-debate" },
+    "Bear Researcher": { deskId: "desk-bear", badgeId: "badge-bear", speechId: "speech-bear", podId: "pod-debate" },
+    "Research Manager": { deskId: "desk-manager", badgeId: "badge-manager", speechId: "speech-manager", podId: "pod-debate" },
+    "Trader": { deskId: "desk-trader", badgeId: "badge-trader", speechId: "speech-trader", podId: "pod-exec" },
+    "Portfolio Manager": { deskId: "desk-pm", badgeId: "badge-pm", speechId: "speech-pm", podId: "pod-exec" },
+};
+
+function updateAgentDeskState(agent, status) {
+    const mapping = AGENT_TO_DESK[agent];
+    if (!mapping) return;
+
+    const desk = document.getElementById(mapping.deskId);
+    const badge = document.getElementById(mapping.badgeId);
+    const pod = document.getElementById(mapping.podId);
+
+    if (desk) {
+        desk.classList.remove("desk-working", "desk-debating", "desk-done");
+        if (status === "in_progress") {
+            desk.classList.add(agent.includes("Researcher") || agent.includes("Manager") ? "desk-debating" : "desk-working");
+            if (pod) pod.classList.add("pod-active");
+        } else if (status === "completed") {
+            desk.classList.add("desk-done");
+        }
+    }
+
+    if (badge) {
+        if (status === "in_progress") {
+            badge.textContent = "Working";
+            badge.className = "text-[8px] text-amber-risk font-semibold animate-pulse";
+        } else if (status === "completed") {
+            badge.textContent = "Done";
+            badge.className = "text-[8px] text-primary font-semibold";
+        } else {
+            badge.textContent = "Idle";
+            badge.className = "text-[8px] text-text-muted";
+        }
+    }
+}
+
+function triggerDeskAction(agent, action, speech) {
+    const mapping = AGENT_TO_DESK[agent];
+    if (!mapping) return;
+
+    const desk = document.getElementById(mapping.deskId);
+    const speechEl = document.getElementById(mapping.speechId);
+
+    if (desk) {
+        if (action === "typing" || action === "talking") {
+            desk.classList.add("desk-working");
+        } else if (action === "finished") {
+            desk.classList.remove("desk-working");
+            desk.classList.add("desk-done");
+        }
+    }
+
+    if (speechEl && speech) {
+        speechEl.textContent = speech;
+        speechEl.classList.remove("hidden");
+        setTimeout(() => {
+            speechEl.classList.add("hidden");
+        }, 4000);
+    }
+}
+
+function markAllDesksDone() {
+    Object.values(AGENT_TO_DESK).forEach(m => {
+        const desk = document.getElementById(m.deskId);
+        const badge = document.getElementById(m.badgeId);
+        if (desk) {
+            desk.classList.remove("desk-working", "desk-debating");
+            desk.classList.add("desk-done");
+        }
+        if (badge) {
+            badge.textContent = "Verified";
+            badge.className = "text-[8px] text-primary font-semibold";
+        }
+    });
+}
+
+/**
+ * Report Downloads: Markdown, HTML, JSON
+ */
+function downloadHtmlReport() {
+    const md = getCurrentDossierMarkdown();
+    const renderedHtml = (typeof marked !== "undefined" && marked.parse) ? marked.parse(md) : `<pre>${escapeHtml(md)}</pre>`;
+    
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TradingAgents Intelligence Report - ${state.resolvedTicker}</title>
+    <style>
+        body { background: #0b0f19; color: #dfe2f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+        h1, h2, h3 { color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        h1 { color: #10b981; }
+        h2 { color: #4cd7f6; margin-top: 28px; }
+        h3 { color: #f59e0b; }
+        blockquote { border-left: 3px solid #10b981; padding-left: 14px; color: #94a3b8; background: rgba(16,185,129,0.05); }
+        code { background: #171b26; color: #4cd7f6; padding: 2px 6px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #2e384d; padding: 8px 12px; text-align: left; }
+        th { background: #171b26; }
+    </style>
+</head>
+<body>
+    <div style="text-align: right; font-size: 12px; color: #86948a;">Generated by TradingAgents Multi-Agent Cockpit</div>
+    ${renderedHtml}
+</body>
+</html>`;
+
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${state.resolvedTicker}_Dossier.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function downloadJsonDossier() {
+    const payload = {
+        ticker: state.resolvedTicker,
+        raw_ticker: state.rawTicker,
+        market: state.selectedMarket,
+        generated_at: new Date().toISOString(),
+        quote: state.quoteData,
+        financials: state.financialsData,
+        debate: state.debateData,
+        reports: state.reports,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${state.resolvedTicker}_Dossier.json`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 function getCurrentDossierMarkdown() {

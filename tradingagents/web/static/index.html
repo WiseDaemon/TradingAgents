@@ -263,6 +263,200 @@
                 </div>
             </div>
 
+            <!-- Animated Agent Office Trading Floor (Desk Jobs) -->
+            <div class="glass-panel p-4 flex flex-col shrink-0 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-cyan-accent text-sm">corporate_fare</span>
+                        <h3 class="font-sora text-xs font-semibold uppercase tracking-wider text-cyan-accent">TradingAgents Floorplan • Live Agent Workstations</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="office-status-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-primary font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Floor Active
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Office Grid Floorplan with 4 Specialized Department Pods -->
+                <div class="office-floor p-3 relative z-10">
+                    <div class="office-grid-bg"></div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 relative z-20">
+                        <!-- Pod 1: Research & Fundamentals Desk -->
+                        <div id="pod-research" class="agent-pod pod-active flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 border-b border-white/5 mb-2">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-cyan-accent flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-xs">analytics</span> Research Pod
+                                </span>
+                                <span class="text-[9px] text-text-dim">Dept A</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <!-- Market Analyst Desk -->
+                                <div id="desk-market" class="agent-desk">
+                                    <div id="speech-market" class="speech-bubble hidden">Scanning EMA...</div>
+                                    <div class="agent-avatar">📈</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.1s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.4s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.2s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">Market</span>
+                                    <span id="badge-market" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+
+                                <!-- Fundamentals Desk -->
+                                <div id="desk-fundamentals" class="agent-desk">
+                                    <div id="speech-fundamentals" class="speech-bubble hidden">DCF Model...</div>
+                                    <div class="agent-avatar">📑</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.3s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.1s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.5s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">Valuation</span>
+                                    <span id="badge-fundamentals" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pod 2: Sentiment & News Pod -->
+                        <div id="pod-intel" class="agent-pod flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 border-b border-white/5 mb-2">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-amber-risk flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-xs">newspaper</span> News & Intel
+                                </span>
+                                <span class="text-[9px] text-text-dim">Dept B</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <!-- Sentiment Analyst Desk -->
+                                <div id="desk-social" class="agent-desk">
+                                    <div id="speech-social" class="speech-bubble hidden">Social buzz +45%</div>
+                                    <div class="agent-avatar">💬</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.5s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.2s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">Sentiment</span>
+                                    <span id="badge-social" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+
+                                <!-- News Analyst Desk -->
+                                <div id="desk-news" class="agent-desk">
+                                    <div id="speech-news" class="speech-bubble hidden">Macro wires...</div>
+                                    <div class="agent-avatar">📰</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.2s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.6s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">News</span>
+                                    <span id="badge-news" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pod 3: Bull vs Bear Debate Chamber -->
+                        <div id="pod-debate" class="agent-pod flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 border-b border-white/5 mb-2">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-purple-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-xs">forum</span> Debate Room
+                                </span>
+                                <span class="text-[9px] text-text-dim">Dept C</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-1.5">
+                                <!-- Bull Desk -->
+                                <div id="desk-bull" class="agent-desk">
+                                    <div id="speech-bull" class="speech-bubble hidden">Breakout runway!</div>
+                                    <div class="agent-avatar text-primary">🐂</div>
+                                    <div class="monitor-screen border-emerald-500/40">
+                                        <div class="monitor-chart"><div class="monitor-bar bg-primary" style="height:80%"></div></div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[9px] font-medium text-primary mt-1">Bull</span>
+                                    <span id="badge-bull" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+
+                                <!-- Manager Desk -->
+                                <div id="desk-manager" class="agent-desk">
+                                    <div id="speech-manager" class="speech-bubble hidden">Arbitrating...</div>
+                                    <div class="agent-avatar text-cyan-accent">⚖️</div>
+                                    <div class="monitor-screen border-cyan-400/40">
+                                        <div class="monitor-chart"><div class="monitor-bar bg-cyan-accent" style="height:60%"></div></div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[9px] font-medium text-cyan-accent mt-1">Judge</span>
+                                    <span id="badge-manager" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+
+                                <!-- Bear Desk -->
+                                <div id="desk-bear" class="agent-desk">
+                                    <div id="speech-bear" class="speech-bubble hidden">Watch CapEx!</div>
+                                    <div class="agent-avatar text-crimson-sell">🐻</div>
+                                    <div class="monitor-screen border-red-500/40">
+                                        <div class="monitor-chart"><div class="monitor-bar bg-crimson-sell" style="height:40%"></div></div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[9px] font-medium text-crimson-sell mt-1">Bear</span>
+                                    <span id="badge-bear" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pod 4: Executive Committee & Trader Desk -->
+                        <div id="pod-exec" class="agent-pod flex flex-col justify-between">
+                            <div class="flex items-center justify-between pb-1.5 border-b border-white/5 mb-2">
+                                <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-xs">gavel</span> Strategy & PM
+                                </span>
+                                <span class="text-[9px] text-text-dim">Executive</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <!-- Senior Trader Desk -->
+                                <div id="desk-trader" class="agent-desk">
+                                    <div id="speech-trader" class="speech-bubble hidden">Calculating Trailing Stop</div>
+                                    <div class="agent-avatar">⚡</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.15s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.45s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">Trader</span>
+                                    <span id="badge-trader" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+
+                                <!-- Portfolio Manager Desk -->
+                                <div id="desk-pm" class="agent-desk">
+                                    <div id="speech-pm" class="speech-bubble hidden">Verdict Ready!</div>
+                                    <div class="agent-avatar">👑</div>
+                                    <div class="monitor-screen">
+                                        <div class="monitor-chart">
+                                            <div class="monitor-bar" style="animation-delay: 0.35s"></div>
+                                            <div class="monitor-bar" style="animation-delay: 0.65s"></div>
+                                        </div>
+                                    </div>
+                                    <div class="desk-keyboard"></div>
+                                    <span class="text-[10px] font-medium text-slate-300 mt-1">PM</span>
+                                    <span id="badge-pm" class="text-[8px] text-text-muted">Idle</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Multi-Agent Orchestration Pipeline Visualizer -->
             <div class="glass-panel p-4 flex flex-col shrink-0">
                 <div class="flex items-center justify-between mb-3">
@@ -372,12 +566,12 @@
                 <!-- Tabs -->
                 <div class="flex border-b border-outline-variant/30 text-xs overflow-x-auto bg-surface-container/30">
                     <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-primary text-primary font-semibold uppercase tracking-wider bg-surface-container/50 whitespace-nowrap" data-tab="summary">Summary</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="financials">Financials & Ratios</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="debate">Bull vs Bear Debate</button>
                     <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="technical">Technical</button>
                     <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="sentiment">Sentiment</button>
                     <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="news">News</button>
-                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="fundamentals">Fundamentals</button>
-                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="debate">Debate</button>
-                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="decision">Decision</button>
+                    <button class="dossier-tab flex-1 py-2.5 px-3 border-b-2 border-transparent text-on-surface-variant hover:text-white font-semibold uppercase tracking-wider whitespace-nowrap" data-tab="decision">Verdict</button>
                 </div>
 
                 <!-- Dossier Content Body -->
@@ -388,14 +582,22 @@
                     </div>
                 </div>
 
-                <!-- Dossier Action Footer -->
-                <div class="p-3 border-t border-outline-variant/30 flex items-center justify-between text-xs bg-surface-container/20">
+                <!-- Dossier Action Footer with Multi-format Downloads -->
+                <div class="p-3 border-t border-outline-variant/30 flex flex-wrap items-center justify-between gap-2 text-xs bg-surface-container/20">
                     <button id="btn-copy-dossier" class="flex items-center gap-1.5 text-on-surface-variant hover:text-white px-2.5 py-1.5 rounded bg-surface border border-outline-variant/40">
-                        <span class="material-symbols-outlined text-sm">content_copy</span> Copy Report
+                        <span class="material-symbols-outlined text-sm">content_copy</span> Copy
                     </button>
-                    <button id="btn-download-dossier" class="flex items-center gap-1.5 text-primary hover:text-primary-fixed px-2.5 py-1.5 rounded bg-primary/10 border border-primary/40 font-semibold">
-                        <span class="material-symbols-outlined text-sm">download</span> Download .MD
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-download-dossier" class="flex items-center gap-1 text-primary hover:text-primary-fixed px-2.5 py-1.5 rounded bg-primary/10 border border-primary/40 font-semibold" title="Download Markdown dossier">
+                            <span class="material-symbols-outlined text-sm">download</span> .MD
+                        </button>
+                        <button id="btn-download-html" class="flex items-center gap-1 text-cyan-accent hover:text-cyan-300 px-2.5 py-1.5 rounded bg-cyan-500/10 border border-cyan-500/40 font-semibold" title="Download formatted HTML dossier">
+                            <span class="material-symbols-outlined text-sm">html</span> .HTML
+                        </button>
+                        <button id="btn-download-json" class="flex items-center gap-1 text-amber-risk hover:text-amber-300 px-2.5 py-1.5 rounded bg-amber-500/10 border border-amber-500/40 font-semibold" title="Download raw JSON report data">
+                            <span class="material-symbols-outlined text-sm">data_object</span> .JSON
+                        </button>
+                    </div>
                 </div>
             </div>
         </aside>
