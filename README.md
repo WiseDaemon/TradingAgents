@@ -42,9 +42,14 @@
 
 <div align="center">
 
-🚀 [TradingAgents](#tradingagents-framework) | ⚡ [Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
+🚀 [TradingAgents](#tradingagents-framework) | 🖥️ [Web UI Studio](#web-ui-studio) | ⚡ [Installation & CLI](#installation-and-cli) | 🎬 [Demo](https://www.youtube.com/watch?v=90gr5lwjIho) | 📦 [Package Usage](#tradingagents-package) | 🤝 [Contributing](#contributing) | 📄 [Citation](#citation)
+
+<br>
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/WiseDaemon/TradingAgents)
 
 </div>
+
 
 > 🎉 **TradingAgents** officially released! We have received numerous inquiries about the work, and we would like to express our thanks for the enthusiasm in our community.
 >
@@ -94,7 +99,29 @@ Our framework decomposes complex trading tasks into specialized roles.
   <img src="assets/risk.png" width="70%" style="display: inline-block; margin: 0 2%;">
 </p>
 
+## Web UI Studio
+
+TradingAgents now features a dedicated **Web UI Studio** powered by Google Stitch's "Luminous Terminal" design system with automatic country ticker resolution (e.g. India NSE `.NS` & BSE `.BO`, US, UK, Japan), live candlestick charts, 4-phase multi-agent visual tracking, real-time agent stream console, and consensus rating cards.
+
+### Run on GitHub (1-Click Cloud Hosting)
+Launch instantly in GitHub's cloud container with no local setup needed:
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/WiseDaemon/TradingAgents)
+
+GitHub Codespaces spins up the container, automatically executes `run_web.py`, forwards port `8000`, and opens the live web cockpit in your browser.
+
+### Run Locally
+```bash
+# Standalone:
+python run_web.py --open-browser
+
+# Or via the CLI:
+tradingagents web --port 8000
+```
+
+---
+
 ## Installation and CLI
+
 
 ### Installation
 
