@@ -361,7 +361,7 @@ async def handle_get_config(request: web.Request) -> web.Response:
     today = datetime.datetime.now().strftime("%Y-%m-%d")
 
     providers = [
-        {"id": "nvidia", "name": "NVIDIA NIM (Build.nvidia.com)", "models": ["meta/llama-3.3-70b-instruct", "deepseek-ai/deepseek-r1", "meta/llama-3.1-405b-instruct", "mistralai/mistral-large-2-instruct"]},
+        {"id": "nvidia", "name": "NVIDIA NIM (Build.nvidia.com)", "models": ["deepseek-ai/deepseek-v4-pro-0813", "meta/llama-3.3-70b-instruct", "deepseek-ai/deepseek-r1", "meta/llama-3.1-405b-instruct", "mistralai/mistral-large-2-instruct"]},
         {"id": "google", "name": "Google Gemini", "models": ["gemini-3.1-pro", "gemini-2.5-pro", "gemini-2.5-flash"]},
         {"id": "openai", "name": "OpenAI", "models": ["gpt-5.6", "gpt-5.4", "gpt-4o", "gpt-4o-mini"]},
         {"id": "anthropic", "name": "Anthropic Claude", "models": ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]},
